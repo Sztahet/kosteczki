@@ -2,32 +2,32 @@ import pygame
 import random
 from map_generator import generate_map
 from player import Player
-import marker
+from marker import Marker
 # Initialize pygame
 pygame.init()
+# Create a clock object to control the frame rate
+clock = pygame.time.Clock()
 # Set the size of the window, game always should be run in 4:3 window TODO SUPPORT for 16:9
 game_width = 800
 game_height = 600
 window_size = (game_width, game_height)
 screen = pygame.display.set_mode(window_size)
-# Create a clock object to control the frame rate
-clock = pygame.time.Clock()
+# Set the width of the player section
+player_section_width = game_width-game_height
+# Set the title of the window
+pygame.display.set_caption("Kosteczki")
 # Create a font
 font_size = int(game_height/20)
 font = pygame.font.Font(None, font_size)
 small_font = pygame.font.Font(None, int(font_size*0.8))
-# Set the title of the window
-pygame.display.set_caption("Kosteczki")
-# below is a number that is used to determinate how should we generate map etc. 15 by default
-map_scale = 15
-# set square_size for map
-square_size = game_height/map_scale
-# Set the width of the player section
-player_section_width = game_width-game_height
 # Create a variable to track the number of players
 num_players = 8
+# below is a number that is used to determinate how should we generate map etc. 15 by default
+map_scale = 15
 # Create how many markers should be in game - as well as how big the map should be default 20
 map_size = 20
+# set square_size for map
+square_size = game_height/map_scale
 # Create a list to store player names
 player_names = ['' for _ in range(num_players)]
 # Set constant player colors:
@@ -37,6 +37,10 @@ player_colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0),
 current_player = 0
 # Create a delay between key presses
 key_press_delay = 200
+# Create a variable to track the last key press
+last_key_press = pygame.time.get_ticks()
+# Create a variable to track the last key press
+last_key = None
 # Create a button for selecting the number of players
 
 
@@ -49,14 +53,7 @@ def create_button(text, x, y, width, height, color):
     return button_rect
 
 
-# Create a button surface and rect
-start_button_surface = font.render("Start Game", True, (255, 255, 255))
-start_button_rect = start_button_surface.get_rect()
-start_button_rect.center = (400, 500)
-# Create a variable to track the last key press
-last_key_press = pygame.time.get_ticks()
-# Create a variable to track the last key press
-last_key = None
+
 # Create a function to handle player name input
 
 
@@ -68,9 +65,7 @@ def handle_name_input():
         player_names[current_player] = ''
         last_key_press = pygame.time.get_ticks()
     elif keys[pygame.K_RETURN] and pygame.time.get_ticks() - last_key_press > key_press_delay:
-        current_player += 1
-        if current_player >= num_players:
-            current_player = 0
+        next_player()
         last_key_press = pygame.time.get_ticks()
     else:
         for i in range(97, 123):
@@ -86,14 +81,14 @@ def handle_name_input():
 
 
 def handle_button_clicks():
-    global game_state, game_board, markers, players, swap_buttons
+    global game_state, game_board, markers, players, swap_buttons, current_player
     if start_button_rect.collidepoint(pygame.mouse.get_pos()):
         game_board = generate_map(num_players, map_scale, map_scale, map_size)
         # handling markers
         markers = []
         for i in range(num_players):
             for j in range(map_size):
-                markers.append(marker.Marker(
+                markers.append(Marker(
                     i, player_colors[i], None, None, square_size/2))
         # handle players
         for i in range(num_players):
@@ -101,8 +96,8 @@ def handle_button_clicks():
             players.append(
                 Player(player_names[i], player_colors[i], markers))
             markers = markers[3:]
-            print(players[i].name, players[i].markers)
             swap_buttons.append(i)
+        current_player = random.randint(0,num_players -1) # selecting random player who will do the first move in game
         game_state = "running"
 
 # Create a function to handle clicks on the button
@@ -118,7 +113,6 @@ def handle_button_num_players_change(button_rect):
 
 
 # Create a function to display the player section
-
 
 def display_player_section():
     # Draw a rectangle for the player section
@@ -177,14 +171,20 @@ def swap_markers(player1, player2):
     player1.markers = player2_markers
     player2.markers = player1_markers
 
+def next_player():
+    global current_player
+    current_player += 1
+    if current_player >= num_players:
+        current_player = 0
 
+# swap buttons array
 swap_buttons = []
 # players empty array to be filled when game start to run
 players = []
 
 # Create a variable to track the game state
 game_state = "menu"
-frame_counter = 0
+frame_counter = 0 #used only for displaying position of current player in menu (to easy spot where you typing)
 # Main loop
 while True:
     for event in pygame.event.get():
@@ -198,15 +198,11 @@ while True:
 
             # Get the mouse position
             mouse_x, mouse_y = pygame.mouse.get_pos()
-            print(mouse_x, mouse_y)
             for button in swap_buttons:
                 if button.rect.collidepoint(mouse_x, mouse_y) and button.player_id != current_player and len(markers) > 0:
                     swap_markers(players[current_player],
                                  players[button.player_id])
-                    current_player += 1
-                    if current_player >= num_players:
-                        current_player = 0
-            # print(int(mouse_x/square_size),int(mouse_y/square_size),game_board[int(mouse_x/square_size)][int(mouse_y/square_size)])
+                    next_player()
             # Check if the mouse position is within the marker's rectangle
             for marker in players[current_player].markers:
                 if mouse_x >= game_width - player_section_width:
@@ -219,9 +215,7 @@ while True:
                         new_marker = markers[0]
                         players[current_player].add_marker(new_marker)
                         markers.remove(new_marker)
-                    current_player += 1
-                    if current_player >= num_players:
-                        current_player = 0
+                    next_player()
     if game_state == "menu":
         frame_counter = (frame_counter + 1) % 20
         screen.fill((0, 0, 0))
@@ -232,13 +226,7 @@ while True:
         # Create a list to store player colors
         player_colors = [player_colors[i %
                                        len(player_colors)] for i in range(len(player_colors))]
-        # Show the current number of players selected
-        player_num_text = font.render(
-            f"Number of players: {num_players}", True, (255, 255, 255))
-        player_num_rect = player_num_text.get_rect()
-        player_num_rect.center = (200, 300)
-        screen.blit(player_num_text, player_num_rect)
-        screen.blit(start_button_surface, start_button_rect)
+
         for i, (name, color) in enumerate(zip(player_names, player_colors)):
             if frame_counter >= 10 and i == current_player:
                 pacer = "|"
@@ -252,13 +240,13 @@ while True:
         start_button_surface = font.render("Start Game", True, (255, 255, 255))
         start_button_rect = start_button_surface.get_rect()
         start_button_rect.center = (400, 500)
+        screen.blit(start_button_surface, start_button_rect)
     elif game_state == "running":
         # Draw the game here
         screen.fill((0, 0, 0))
         display_player_section()
         for row in range(len(game_board)):
             for col in range(len(game_board[row])):
-                # print(f'pringing row/col {row}/ {col}')
                 if game_board[row][col] == 'X':
                     square_rect = pygame.Rect(
                         (col * square_size)+1, (row * square_size)+1, square_size-1, square_size-1)
