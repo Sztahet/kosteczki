@@ -172,10 +172,14 @@ def swap_markers(player1, player2):
     player2.markers = player1_markers
 
 def next_player():
-    global current_player
+    global current_player,players
     current_player += 1
     if current_player >= num_players:
         current_player = 0
+    
+    if len(players[current_player].markers) > 0:
+        players[current_player].markers[0].is_selected = True
+        players[current_player].markers[0].size *= 1.25
 
 # swap buttons array
 swap_buttons = []
@@ -244,6 +248,11 @@ while True:
     elif game_state == "running":
         # Draw the game here
         screen.fill((0, 0, 0))
+        if len(markers) == 0 and len(players[current_player].markers) == 0:
+            end_game = True
+            for  i in range(0,num_players):
+                if len(players[i].markers) > 0: end_game = False
+            if end_game: print('move to result screen')
         display_player_section()
         for row in range(len(game_board)):
             for col in range(len(game_board[row])):
