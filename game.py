@@ -1,8 +1,9 @@
 import pygame
 import random
-from map_generator import generate_map
-from player import Player
-from marker import Marker
+from mechanics.map_generator import generate_map
+from mechanics.player import Player
+from mechanics.marker import Marker
+from mechanics.score import calculate_score
 # Initialize pygame
 pygame.init()
 # Create a clock object to control the frame rate
@@ -120,9 +121,9 @@ def display_player_section():
                      player_section_width, 0, player_section_width, game_height))
     # Set the starting y position for the player names
     y = game_height/20
-    # Iterate through the player names and display them and thier markers
+    # Iterate through the player names and display them and thier score and markers
     for i, name in enumerate(player_names):
-        player_name_surface = font.render(name, True, player_colors[i])
+        player_name_surface = font.render(f"{name}  ({players[i].score})", True, player_colors[i])
         screen.blit(player_name_surface, (game_width -
                     player_section_width+(player_section_width/5), y))
         if i == current_player:
@@ -172,10 +173,14 @@ def swap_markers(player1, player2):
     player2.markers = player1_markers
 
 def next_player():
-    global current_player
+    global current_player,players
     current_player += 1
     if current_player >= num_players:
         current_player = 0
+    if game_state != 'menu':
+        if len(players[current_player].markers) > 0:
+            players[current_player].markers[0].is_selected = True
+            players[current_player].markers[0].size *= 1.25
 
 # swap buttons array
 swap_buttons = []
@@ -210,6 +215,7 @@ while True:
                 elif game_board[int(mouse_y/square_size)][int(mouse_x/square_size)] == 'Y' and marker.is_selected:
                     game_board = marker.marker_to_map(game_board, int(
                         mouse_y/square_size), int(mouse_x/square_size))
+                    players[marker.player_marker].score = calculate_score(game_board,marker.player_marker)
                     players[current_player].remove_marker(marker)
                     if len(markers):
                         new_marker = markers[0]
@@ -244,6 +250,13 @@ while True:
     elif game_state == "running":
         # Draw the game here
         screen.fill((0, 0, 0))
+        if len(markers) == 0 and len(players[current_player].markers) == 0:
+            end_game = True
+            for  i in range(0,num_players):
+                if len(players[i].markers) > 0: end_game = False
+            if end_game:
+                print('move to result screen')
+            
         display_player_section()
         for row in range(len(game_board)):
             for col in range(len(game_board[row])):
@@ -260,8 +273,6 @@ while True:
                         (col * square_size)+1, (row * square_size)+1, square_size-1, square_size-1)
                     pygame.draw.rect(
                         screen, player_colors[game_board[row][col]], square_rect)
-
     pygame.display.update()
-
     # Limit the frame rate to 20 FPS
     clock.tick(20)
