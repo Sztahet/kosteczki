@@ -1,3 +1,8 @@
+import math
+
+def scoring_function(size):
+    return round((size/5) * size)
+
 def calculate_score(game_board, player_id):
     """Calculate the score for a player given the game board and their marker ID.
     
@@ -12,7 +17,6 @@ def calculate_score(game_board, player_id):
     visited = set()
      # DFS function to traverse the game board
     def dfs(i, j):
-        nonlocal score
         if (i, j) in visited:
             return
         visited.add((i, j))
@@ -41,13 +45,6 @@ def calculate_score(game_board, player_id):
                             if (0 <= ni < len(game_board) and 0 <= nj < len(game_board[0])
                                 and game_board[ni][nj] == player_id):
                                 stack.append((ni, nj))
-                if island_size  == 1:
-                    score += 0
-                elif island_size  == 2:
-                    score += 1
-                elif island_size  == 3:
-                    score += 4
-                else:
-                    score += 7 + (island_size  - 4) * 2
-    
+                score += scoring_function(island_size)
+
     return score

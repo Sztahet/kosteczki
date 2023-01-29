@@ -4,6 +4,7 @@ from mechanics.map_generator import generate_map
 from mechanics.player import Player
 from mechanics.marker import Marker
 from mechanics.score import calculate_score
+
 # Initialize pygame
 pygame.init()
 # Create a clock object to control the frame rate
@@ -274,5 +275,5 @@ while True:
                     pygame.draw.rect(
                         screen, player_colors[game_board[row][col]], square_rect)
     pygame.display.update()
-    # Limit the frame rate to 20 FPS
-    clock.tick(20)
+    # Limit the frame rate to 10 FPS
+    clock.tick(10)
